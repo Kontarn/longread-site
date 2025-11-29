@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="500" viewBox="0 0 900 500">
+  <rect width="100%" height="100%" fill="#fff7ed"/>
+  <g fill="#f97316" font-family="Inter, sans-serif" font-size="20">
+    <text x="40" y="60">Децентрализованное хранение — IPFS & P2P</text>
+  </g>
+  <g transform="translate(60,120)">
+    <rect x="60" y="20" width="160" height="160" rx="12" fill="#f97316"/>
+    <rect x="260" y="20" width="160" height="160" rx="12" fill="#38bdf8"/>
+    <rect x="460" y="20" width="160" height="160" rx="12" fill="#a78bfa"/>
+    <text x="70" y="210" font-size="14">Ноды и фрагменты</text>
+  </g>
+</svg>

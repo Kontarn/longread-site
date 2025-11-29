@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="460" viewBox="0 0 1000 460">
+  <rect width="100%" height="100%" fill="#fff"/>
+  <g fill="#0e7490" font-family="Inter, sans-serif" font-size="22">
+    <text x="40" y="60">Цифровая экономика — тренды 2025</text>
+  </g>
+  <g transform="translate(60,120)">
+    <polyline points="0 200 100 180 200 140 300 120 400 100 500 80 700 60 900 40" stroke="#0e7490" stroke-width="6" fill="none" />
+    <text x="420" y="40" font-size="16" fill="#6b7280">Прогнозный рост к 2025</text>
+  </g>
+</svg>
