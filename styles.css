@@ -44,6 +44,24 @@ body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial; background:var
 .toc a.active{font-weight:700;color:var(--text);background:rgba(0,0,0,0.03);padding-left:0.35rem;border-left:3px solid var(--accent);}
 /* Small changes for typography */
 .longread p{font-size:clamp(1rem,1.2vw,1.07rem);color:var(--text)}
+/* Justify article body text for a neat, book-like appearance */
+.longread p,
+.longread li,
+.longread blockquote,
+.longread figcaption,
+.longread .muted {
+  text-align: justify;
+  text-justify: inter-word;
+  -webkit-text-align-last: left;
+  text-align-last: left;
+  hyphens: auto;
+}
+/* Keep headings, codeblocks and preformatted text left-aligned */
+.longread h1, .longread h2, .longread h3, .longread h4, .longread h5, .longread h6,
+.longread pre, .longread code, .longread kbd, .longread samp {
+  text-align: left;
+  hyphens: none;
+}
 .longread ul{padding-left:1.2rem}
 /* Make images responsive */
 figure{margin:0 0 1rem}
@@ -61,6 +79,18 @@ img{max-width:100%;height:auto;border-radius:8px}
 .skip-link{position:absolute;left:0;top:-40px;background:var(--accent);color:white;padding:8px 12px;border-radius:0 0 6px 0;z-index:1000}
 .skip-link:focus{top:0}
 figcaption{font-size:.9rem;color:var(--muted);margin-top:.4rem}
+/* Author credit styles */
+.author-credit {
+  margin-left: 0.75rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+  align-self: center;
+  white-space: nowrap;
+}
+@media (max-width: 640px) {
+  /* Keep it readable on small screens — hide to avoid layout crowding */
+  .author-credit { display: none; }
+}
 
 /* mobile default hide for toc (visibility handled by `hidden` attribute)
    Keep toc styled as block visually so toggling works */
@@ -100,6 +130,15 @@ figcaption{font-size:.9rem;color:var(--muted);margin-top:.4rem}
 #web3 .video-embed{margin-top:1rem}
 .chart-wrap{margin-top:1rem}
 .muted{color:var(--muted);font-size:.95rem}
+
+/* Accessibility: suppress browser focus ring for non-keyboard interactions
+  while keeping a visible outline for keyboard navigation via :focus-visible */
+:focus:not(:focus-visible){ outline: none; }
+
+/* Ensure headings inside article don't show a persistent ring on initial load,
+  but still receive keyboard-visible focus outlines */
+.longread h1:focus, .longread h2:focus, .longread h3:focus, .longread h4:focus { outline: none; }
+.longread h1:focus-visible, .longread h2:focus-visible, .longread h3:focus-visible, .longread h4:focus-visible { outline: 3px solid rgba(14,116,144,0.18); outline-offset: 3px; border-radius: 4px; }
 
 /* Chapter tabs */
 /* previously used top tabs were removed; navigation is via left-side TOC */
