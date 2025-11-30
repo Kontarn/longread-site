@@ -1,3 +1,4 @@
+// backup of script.js on 2025-11-30
 // Minimal wrapper: load canonical script.clean.js as the only active script
 import './script.clean.js';
 

@@ -49,7 +49,28 @@
     updateProgress();
   }
 
-  function initActive(){ const id = location.hash ? location.hash.substring(1) : null; if(id && document.getElementById(id)) activateSectionById(id,false); else if(sections.length) activateSectionById(sections[0].id,false); }
+  function initActive(){
+    const raw = location.hash ? location.hash.substring(1) : null;
+    if(!raw){ if(sections.length) activateSectionById(sections[0].id,false); return; }
+    const el = document.getElementById(raw);
+    if(!el){ // If it's a section id or missing, try to activate as section
+      const sec = document.getElementById(raw);
+      if(sec && sec.tagName.toLowerCase() === 'section'){ activateSectionById(raw,false); }
+      else if(sections.length) activateSectionById(sections[0].id,false);
+      return;
+    }
+    // If element exists: handle if it's a reference list item with external href (open it), otherwise find the containing section and activate it
+    if(el.tagName.toLowerCase() === 'li' && el.parentElement && el.parentElement.classList.contains('references')){
+      const a = el.querySelector('a[href]'); const externalHref = a ? a.getAttribute('href') : null;
+      if(externalHref && /^(https?:)?\/\//i.test(externalHref)){
+          try{ console.debug('initActive: navigating to external ref', externalHref); window.location.href = externalHref; }catch(e){}
+        return;
+      }
+    }
+    const parentSection = el.tagName.toLowerCase() === 'section' ? el : el.closest('section');
+    if(parentSection){ activateSectionById(parentSection.id, false); try{ el.tabIndex = -1; el.focus(); el.scrollIntoView({behavior:'smooth', block:'start'}); }catch(e){} }
+    else { activateSectionById(el.id, false); }
+  }
 
   function updateProgress(){ if(!activeSection || !progressEl){ if(progressEl) progressEl.style.width='0%'; return; } const top = activeSection.getBoundingClientRect().top + window.scrollY; const h = activeSection.offsetHeight; const pct = Math.min(100, Math.max(0, Math.round((window.scrollY - top) / Math.max(1, h - window.innerHeight) * 100))); progressEl.style.width = `${pct}%`; }
 
@@ -91,14 +112,29 @@
       // Make the reference list item focusable for programmatic focus on hash navigation
       li.tabIndex = -1;
     });
-    // Keep inline reference markers (.ref) as internal anchors (#ref-N), for accessibility and semantics
+    // Keep inline reference markers (.ref) as internal anchors (#ref-N) for non-JS fallback.
+    // With JS enabled, clicking the inline ref will open the external source referenced in the list.
     document.querySelectorAll('.ref').forEach((r,idx)=>{
       const rawHref = r.getAttribute('href') || `#ref-${idx+1}`;
       if(!r.getAttribute('href')) r.setAttribute('href', rawHref);
-      // Ensure the inline ref is accessible; do not convert to external link
+      // Ensure the inline ref is accessible
       if(!r.getAttribute('aria-label')) r.setAttribute('aria-label', `Ссылка на источник ${idx+1}`);
       if(!r.getAttribute('title')) r.setAttribute('title', `Перейти к источнику ${idx+1}`);
-      // preserve linking to references list; do not set target or rel attributes
+      // if the reference list item has an external href, update the inline ref href to point to it
+      try{
+        const rid = rawHref.replace(/^#/, '');
+        const li = document.getElementById(rid);
+        const linkInLi = li ? li.querySelector('a[href]') : null;
+        const externalHref = linkInLi ? linkInLi.getAttribute('href') : null;
+        if(externalHref && /^(https?:)?\/\//i.test(externalHref)){
+          // set the inline ref href to the external URL so default navigation opens the external site in a new tab
+          r.setAttribute('href', externalHref);
+          r.setAttribute('target', '_blank');
+          r.setAttribute('rel', 'noopener noreferrer');
+          // Do not intercept the click here: default navigation with target=_blank will open in a new tab.
+          // Avoid using window.open here to prevent popup-blocking issues; browsers open links with target='_blank' reliably on user clicks.
+        }
+      }catch(e){}
     });
   }catch(e){} }
 
@@ -107,7 +143,62 @@
 
   function initKeyboard(){ try{ /* No TOC toggle to wire up — keyboard focus and smooth-scrolling is enabled */ document.documentElement.style.scrollBehavior = 'smooth'; }catch(e){} }
 
-  function initAll(){ ensureIds(); buildTOC(); initThemeAndFont(); initShowAllToggle(); /* initToggles removed */ initReveal(); initReferences(); initSkip(); initKeyboard(); initChart(); initActive(); window.addEventListener('scroll', updateProgress); window.addEventListener('hashchange', ()=>{ const id = location.hash ? location.hash.substring(1) : null; if(id) activateSectionById(id, false); }); }
+  function initAll(){
+    ensureIds();
+    buildTOC();
+    initThemeAndFont();
+    initShowAllToggle(); /* initToggles removed */
+    initReveal();
+    initReferences();
+    initSkip();
+    initKeyboard();
+    initChart();
+    initActive();
+    window.addEventListener('scroll', updateProgress);
+    window.addEventListener('hashchange', ()=>{
+      const id = location.hash ? location.hash.substring(1) : null;
+      if(!id) return;
+      const el = document.getElementById(id);
+      if(el){
+        const parentSection = el.tagName.toLowerCase() === 'section' ? el : el.closest('section');
+        // If the hash explicitly points to a reference list item, attempt to open external link
+        if(el.tagName.toLowerCase() === 'li' && el.parentElement && el.parentElement.classList.contains('references')){
+          const a = el.querySelector('a[href]');
+          const externalHref = a ? a.getAttribute('href') : null;
+          if(externalHref && /^(https?:)?\/\//i.test(externalHref)){
+              try{ console.debug('hashchange: navigating to external ref', externalHref); window.location.href = externalHref; }catch(e){}
+            // Do not activate the references section — we directly open the external site
+            return;
+          }
+        }
+        if(parentSection){
+          activateSectionById(parentSection.id, false);
+          try{ el.tabIndex = -1; el.focus(); el.scrollIntoView({behavior:'smooth', block:'start'}); }catch(e){}
+        } else if(document.getElementById(id) && document.getElementById(id).tagName === 'SECTION'){
+          activateSectionById(id, false);
+        }
+      } else {
+        if(document.getElementById(id) && document.getElementById(id).tagName === 'SECTION') activateSectionById(id, false);
+      }
+    });
+    // Delegated capture listener to intercept clicks on inline refs before the browser navigates
+    try{
+      // delegation: intercept clicks on inline refs and open external URLs when present (capture-phase)
+      document.body.addEventListener('click', function(e){
+        const anchor = e.target.closest && e.target.closest('a.ref');
+        if(!anchor) return; const href = anchor.getAttribute('href'); if(!href || href.indexOf('#') !== 0) return; const rid = href.replace(/^#/, '');
+        const li = document.getElementById(rid); const linkInLi = li ? li.querySelector('a[href]') : null; const externalHref = linkInLi ? linkInLi.getAttribute('href') : null;
+        if(externalHref && /^(https?:)?\/\//i.test(externalHref)){
+            try{
+              e.preventDefault();
+              // Use window.open to open in a new tab on user click; fallback to same tab navigation if popup blocked
+              const w = window.open(externalHref, '_blank', 'noopener');
+              if(!w){ window.location.href = externalHref; }
+            }catch(e){ try{ e.preventDefault(); window.location.href = externalHref; }catch(e){} }
+        }
+      }, true);
+    }catch(e){}
+  }
 
   async function maybeLoadExternalArticle(){
     try{
@@ -122,7 +213,10 @@
       // If content contains a top-level <article> or <section> we will inject as-is
       // Trim any surrounding whitespace
       txt = txt.trim();
-      // Basic sanity check: if it contains section tags, inject
+      // Sanitize: remove leftover markers like '*** End Patch' or similar stray markers that may appear from editor artifacts
+      try{ txt = txt.replace(/\*{3,}\s*end\s*patch\s*/ig, ''); }catch(e){}
+      // Basic sanity check: if it contains section tags, inject. Also ensure we don't inject empty/sanitized content
+      if(!txt || txt.trim().length === 0){ console.warn('maybeLoadExternalArticle: fetched content is empty after sanitization, skipping injection'); return; }
       if(txt.includes('<section')){
         article.innerHTML = txt;
       } else {
